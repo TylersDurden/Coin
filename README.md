@@ -1,2 +1,3 @@
-# hello_world
-first time! 
+#Coin 
+This will be where I put the bitcoin stock analyzer code. 
+ 
