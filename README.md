@@ -11,21 +11,21 @@ Prices across markets, as well as explicit changes in price are then logged to f
 
 Market names : 
 ```java
-static String[]             markets  = {"Bitsamp", "Bitfinex", "OKCoin", "Coinbase"};``` 
+static String[]             markets  = {"Bitsamp", "Bitfinex", "OKCoin", "Coinbase"};
+``` 
 Instance of Market Values: 
 ```java 
  static Map<Integer, Double> Bitfinex = new HashMap<Integer, Double>();
  static Map<Integer, Double> Bitstamp = new HashMap<Integer, Double>();
  static Map<Integer, Double> OKCoin   = new HashMap<Integer, Double>();
- static Map<Integer, Double> Coinbase = new HashMap<Integer, Double>();```
+ static Map<Integer, Double> Coinbase = new HashMap<Integer, Double>();
+ ```
 Movement of markets stored in arrays: 
 ```java
   static double[][]           minus    = new double[4][100];
   static double[][]           plus     = new double[4][100];
-  static double[][]           movmt    = new double[4][100];```
-  
-  
-
+  static double[][]           movmt    = new double[4][100];
+  ```
 
 # priceHistory.java
 Takes a year worth of Coinbase market close prices and organizes them into a HashMap. This allows previous prices to be referenced
