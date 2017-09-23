@@ -30,3 +30,21 @@ Movement of markets stored in arrays:
 # priceHistory.java
 Takes a year worth of Coinbase market close prices and organizes them into a HashMap. This allows previous prices to be referenced
 and paired with historical dates. The goal is for the historical price data to provide context to the calculations that are done, and will be done, in the btc.java program. 
+
+Organizing Dates/Prices, allowing searches with either date or prices as Key : 
+```java
+    static Set<String>          dates   = new HashSet<>();               /
+    static List<Double>         prices  = new ArrayList<>();
+    static Map<Integer, Double> history = new HashMap<Integer, Double>();
+    static Map<String, Double>  MAP     = new HashMap<String, Double>();
+```
+Method for parsing dates from CSV: 
+```java 
+        TimeZone est = TimeZone.getTimeZone("EST");
+        Calendar c = Calendar.getInstance(est, Locale.US);
+
+        String cs = c.toString();
+        String mo = cs.split(",MONTH=")[1].split(",")[0];
+        String yr = cs.split(",YEAR=")[1].split(",")[0];
+        String day = cs.split("DAY_OF_MONTH=")[1].split(",")[0];
+ ```
