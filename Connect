@@ -1,0 +1,418 @@
+/* btc.java */
+import java.net.URL;
+import java.net.*;
+import java.io.*;
+import java.util.regex.*;
+import java.nio.file.FileSystem;
+import java.nio.file.*;
+import java.util.*;
+
+/* This class monitors the price of 4 major Bitcoin exchanges,
+ * and keeps track of positive and negative changes for each
+ * exchange with respect to time. 
+ * 
+ * Compilation Connect.java (no Dependencies)
+ * 
+ * @author scottrobbins
+ */
+public class btc {
+
+    private static String       link0;
+    private static String       link1;
+    int                         sz0;
+
+    private static String[]     code     = new String[1000];
+    private static double[][]   history  = new double[4][100];
+    //Time variables
+    static long                 start;
+    static long                 now;
+    static long                 delt;
+    final static long           begin    = System.currentTimeMillis();
+    static int                  time;
+    //Markets
+    static String[]             markets  = {"Bitsamp", "Bitfinex", "OKCoin", "Coinbase"};
+
+    static boolean              stamp;
+    static boolean              ok;
+    static boolean              bif;
+    static boolean              coin;
+    //save history of + and - changes for each market
+    static double[][]           minus    = new double[4][100];
+    static double[][]           plus     = new double[4][100];
+    static double[][]           movmt    = new double[4][100];
+    static Date                 date;
+    //Maps 
+    static Map<Integer, Double> Bitfinex = new HashMap<Integer, Double>();
+    static Map<Integer, Double> Bitstamp = new HashMap<Integer, Double>();
+    static Map<Integer, Double> OKCoin   = new HashMap<Integer, Double>();
+    static Map<Integer, Double> Coinbase = new HashMap<Integer, Double>();
+    
+    static Map<String,  Double> findBitS = new HashMap<String, Double>();
+    static Map<String,  Double> findBif  = new HashMap<String, Double>();
+    static Map<String,  Double> findOK   = new HashMap<String, Double>();
+    static Map<String,  Double> findCB   = new HashMap<String, Double>();
+   
+   // Keep track of each markets candle stick with two HashMaps 
+    static Map<String,  Double> Bulls = new HashMap<String, Double>();
+    static Map<String,  Double> Bears = new HashMap<String, Double>();
+    static Vector<      Double>  Chart = new Vector();
+    /* It might make more sense to use vectors here ^^ because we expect
+    the bull and bears collection to grow over time. */
+    //Different combinations of time, prices and markets could
+    //be useful for other maps for later! 
+
+    /* User chooses a market to look at in more detail, and this
+       choice is saved as an Integer, which corresponds to markets[int]*/
+       static int selection;
+
+    public btc() throws InterruptedException {
+        
+        //set todays date, and initialize a calendar for calculations
+        TimeZone est = TimeZone.getTimeZone("EST");
+        Calendar c =  Calendar.getInstance(est,Locale.US);
+        
+        String cs = c.toString();
+        String mo = cs.split(",MONTH=")[1].split(",")[0];
+        String yr = cs.split(",YEAR=")[1].split(",")[0];
+        String day = cs.split("DAY_OF_MONTH=")[1].split(",")[0];
+        
+        
+        time = 0;
+        link0 = "https://www.bitcoinwisdom.com";
+        link1 = "https://coinmarketcap.com/currencies/volume/24-hour/";
+        //maybe rotate through several links to cross reference prices,
+        //but also be able to query faster 
+
+      
+        /* Now that the HashMaps are working I can add in the ability to
+         * Enter text and essentially query for the prices of different markets
+         * for different times. 
+         * 
+         TODO: gotta do some math and stuff with volume, 
+         * but it's been hard to find a site with an easy api to follow. I should try
+         * blockchain again.   
+         */
+        
+        String ans = ""; String response = " ";
+        System.out.println("Enter a market to analyze: ");
+        Scanner sc = new Scanner(System.in);
+        try{
+           ans = sc.nextLine();  
+        }catch(NoSuchElementException e){
+            ans = "Bitfinex";
+        }
+        
+        for(int l=0;l<markets.length;l++){
+            if(ans.compareTo(markets[l])==0){
+                selection = l;
+            }
+        }
+        System.out.println("Selected: "+markets[selection]);
+       
+        sc.close();
+        System.out.println("Analyzing "+ans);
+        
+        /* TODO:  Algorithm to make this program more useful 
+            [1] - Keep Track of the time since the last highest/lowest price
+            [2] - Keep Track of highest/lowest while running 
+            [3] - Keep track of current difference between now and [1]&[2]
+            [4] - use priceHistory to compare growth/loss 
+            [5] - make more detailed logs, and save in CSV format! 
+         */
+        
+        String dateHead = mo+"/"+day+"/"+yr;
+        log("Beginning - "+dateHead);mathLog("Beggining - "+dateHead);
+        while (true) {
+            
+            quickRun();
+            parse();
+            calc(0);
+            calc(1);
+            calc(2);
+            calc(3);
+            //getVol();//get Trading volume
+            System.out.println(mo+"/"+day+"/"+yr+" - $"+queryMarkets(ans));
+            
+            time += 1;
+            Thread.sleep(10000);
+
+        }
+    }
+    
+    /* Build up volume bins for a selected market over time */
+    private static void candlestick(int whichMark){
+        String m = markets[whichMark];
+        String market;
+    
+        /* Use history[whichMark][time] to go
+         * through history and sum changes with 
+         * movmt[whichMark][time] 
+            use to fill the growth or loss vectors 
+         */
+      for(int i=0;i<time;i++){
+          Chart.add(movmt[whichMark][i]);
+      }
+        /* Vector can easily be translated into a plot
+         * once an implementation of graphics is defined
+         ** The Chart Vector is essentially a Momentum Oscillator
+         * (Financial Analysis tool)
+            Also could so interesting math on the Vector (avgs, etc.)
+            And would need a Vector other quantities like Volume 
+         */
+        
+        
+    }
+
+
+    /* Get the trading volume of an exchange */
+    private void getVol() {
+        /*This one goes well over 1000, 
+        so read in chunks*/
+
+        String ln = "";
+        String[] html = new String[1001];
+        int ind = 0;
+        try {
+            URL url = new URL(link1);
+            url.openConnection();
+            BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+            while ((ln = in.readLine()) != null || ind == 1000) {
+                html[ind] = ln;
+                System.out.println(ind + " " + ln);
+                ind += 1;
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /* This method writes parameter String info to a text file 
+    called "dat.txt*/
+    private void log(String info) {
+        BufferedWriter writer = null;
+        try {
+            //create a temporary file
+            Path p = Paths.get("./dat.txt");
+            File logFile = p.toFile();
+            //write to the temp file 
+            writer = new BufferedWriter(new FileWriter(logFile, true));
+            writer.write(info + "\n");//test text
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                writer.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /* Log method for calculations saved in math.txt */
+    private void mathLog(String in) {
+        BufferedWriter writer = null;
+        try {
+            Path p = Paths.get("./math.txt");
+            File mlog = p.toFile();
+            writer = new BufferedWriter(new FileWriter(mlog, true));
+            writer.write(in + "\n");// <--logs it here
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                writer.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    /* Scrape HTML for info */
+    private void quickRun() {
+
+        String line = null;
+        int numlns = 0;
+        start = System.currentTimeMillis();
+        try {
+            URL url = new URL(link0);
+            url.openConnection();
+            BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+            while ((line = in.readLine()) != null) {
+                code[numlns] = line;
+                numlns += 1;
+            }
+            sz0 = numlns;
+        } catch (MalformedURLException e) {
+            System.out.println("BAD URL");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        delt = getElapsedTime();
+        System.out.println(numlns + " read in " + delt + " ms\n");
+    }
+
+    long getElapsedTime() {
+        now = System.currentTimeMillis() - begin;
+        return now;
+    }
+
+    /* Pull btc prices of major exchanges from the HTML */
+    void parse() {
+        System.out.println("[" + time + "]");
+        /* where things are: 
+         * bitstamp line 19 , 200-205
+            coinbase 211-220
+         * bfx on ~25
+         * okCoin on 28 
+        Log the extracted Prices */
+
+        double[] market = new double[4];
+        market[0] = extract(code[19]); // Bitstamp
+        market[1] = extract(code[25]); //Bitfinex
+        market[2] = extract(code[28]); // okCoin
+        market[3] = extract(code[213]); // Coinbase
+
+        //Now do it with HashMaps
+        Bitstamp.put(time, extract(code[19]));
+        Bitfinex.put(time, extract(code[25]));
+        OKCoin.put(time, extract(code[28]));
+        Coinbase.put(time, extract(code[213]));
+        //Now do it with HashMaps
+        findBitS.put(markets[0],extract(code[19]));
+        findBif.put(markets[1],extract(code[25]));
+        findOK.put(markets[2],extract(code[28]));
+        findCB.put(markets[3],extract(code[213]));
+        
+        /*print all information and then log it to a file/save it locally*/
+        log("T=" + getElapsedTime() * 0.001 + " s");
+        log(markets[0] + " " + market[0] + " " + markets[1] +
+        " " + market[1] + " " + markets[2] + " " + market[2] + 
+        " " + markets[3] + " " + market[3]);
+        log("\n**********");
+        member(market);
+        
+    }
+    static double queryMarkets(String exchange){
+        double price = 0;
+        if(exchange.compareTo(markets[0])==0){
+            price = findBitS.get(exchange);
+        }
+        if(exchange.compareTo(markets[1])==0){
+            price = findBif.get(exchange);
+        }
+        if(exchange.compareTo(markets[2])==0){
+            price = findOK.get(exchange);
+        }
+        if(exchange.compareTo(markets[3])==0){
+            price = findCB.get(exchange);
+        }
+        
+         if(time>3){
+               candlestick(selection);
+               System.out.println(markets[selection]+" vector: "+Chart);
+           }
+        
+        return price;
+    }
+
+    /* Pull the doubles (prices) from the strings */
+    double extract(String str) {
+
+        Double dig = 0.0;
+        Matcher m = Pattern.compile("(?!=\\d\\.\\d\\.)([\\d.]+)").matcher(str);
+        while (m.find()) {
+            double d = Double.parseDouble(m.group(1));
+            //System.out.println("\n" + d);
+            return d;
+        }
+        return dig;
+    }
+
+    /* Memory */
+    void member(double[] newest) {
+
+        double[] del = new double[4];
+
+        for (int i = 0; i < 4; i++) {
+            String line = "\n";
+            if (time > 0) {
+                if (newest[i] > history[i][time - 1]) {
+                    del[i] = newest[i] - history[i][time - 1];
+                    log(markets[i] + " + " + del[i]);
+                    plus[i][time] = del[i];
+                    line += Double.toString(del[i]);
+                }
+                if (newest[i] < history[i][time - 1]) {
+                    del[i] = newest[i] - history[i][time - 1];
+                    log("**[" + markets[i] + " - " + del[i] + "]**");
+                    line += Double.toString(del[i]);
+                }
+
+            }
+
+            history[i][time] = newest[i];
+            //sum the different values of bulls and bears to get
+            //a sense of each market
+      }
+
+    }
+
+    /* 
+     * read through memory of price changes to start
+     * building a chronology of + and - trading periods 
+     * using j as the index of market to calculate
+     */
+    void calc(int j) {
+        /*Method could be called with an int parameter for time 
+        which would prescribe bin size to organize add and lost vals
+        It would be useful to log this info in a different .txt file */
+
+        double[] added = new double[time];
+        double[] lost = new double[time];
+        double movt = 0;
+        for (int t = 0; t < time; t++) {
+            added[t] += plus[j][t];
+            lost[t] += (Math.abs(minus[j][t]));
+            movt += (added[t] - lost[t]) / (getElapsedTime() * 0.001);
+
+
+        }
+
+        if (movt > 0.10) {
+            mathLog(" ***" + markets[j] + "+$" + movt + " over " + getElapsedTime() * 0.001 + " ms ");
+        }
+        if (movt < -0.1) {
+            mathLog(" ***" + markets[j] + "-$" + movt + " over " + getElapsedTime() * 0.001 + " ms ");
+        }
+        /*save the added and lost totals in another [][]
+        this could be used to make a bar chart of movt_(time)
+        where bar size is based on mag. of movmt[j][t] and color
+        is based on + or - sign, and size is based on magnitude as well. 
+        The offset would be a reference to history[j][time] which is actual price
+         */
+        movmt[j][time] = movt;
+        for(int k=0;k<4;k++){
+            if(movt>0.50){Bulls.put(markets[k],movmt[k][time]);}
+            if(movt<-0.50){Bears.put(markets[k],movmt[k][time]);}
+            //Use the bulls and bears for Candlestick method calcs
+        }
+    }
+    
+  
+
+    /* Simple main method runs whole thing */
+    public static void main(String[] args) {
+        //create a new Connect object and the program runs
+        try {
+            new btc();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+}
+/* btc.java */
