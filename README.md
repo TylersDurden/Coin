@@ -40,11 +40,11 @@ Organizing Dates/Prices, allowing searches with either date or prices as Key :
 ```
 Method for parsing dates from CSV: 
 ```java 
-        TimeZone est = TimeZone.getTimeZone("EST");
-        Calendar c = Calendar.getInstance(est, Locale.US);
+TimeZone est = TimeZone.getTimeZone("EST");
+Calendar c = Calendar.getInstance(est, Locale.US);
 
-        String cs = c.toString();
-        String mo = cs.split(",MONTH=")[1].split(",")[0];
-        String yr = cs.split(",YEAR=")[1].split(",")[0];
-        String day = cs.split("DAY_OF_MONTH=")[1].split(",")[0];
+String cs = c.toString();
+String mo = cs.split(",MONTH=")[1].split(",")[0];
+String yr = cs.split(",YEAR=")[1].split(",")[0];
+String day = cs.split("DAY_OF_MONTH=")[1].split(",")[0];
  ```
