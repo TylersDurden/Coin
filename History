@@ -1,0 +1,161 @@
+/* priceHistory.java */
+import java.nio.*;
+import java.nio.file.*;
+import java.io.*;
+import java.util.*;
+import java.util.Date.*;
+import java.util.TimeZone;
+import java.util.Calendar.*;
+import java.sql.Time;
+
+/* Analyze the price history of bitcoin at market close
+ * (12AM) for a 1 year range from 8/30/16 - 8/29/2017
+ * to use Financial Analysis tools on past price movt 
+ * in conjunction with realtime updates and calculations
+ * gathered from Connection.java, and logged to math.txt
+ * and dat.txt, to make predictions about how the markets 
+ * will shift
+
+ TODO: start designing the operations and calculations needed
+ to construct candlestick charts for each market. 
+
+ * @author scottrobbins
+ */
+public class priceHistory {
+
+    static File                 doc;
+    static String[]             lines   = new String[400];
+    static String[]             strDays = new String[365];
+    static Set<String>          dates   = new HashSet<>();               //dates
+    static List<Double>         prices  = new ArrayList<>();
+    static Map<Integer, Double> history = new HashMap<Integer, Double>();
+    static Map<String, Double>  MAP     = new HashMap<String, Double>();
+    static Map<Double, String>  map     = new HashMap<Double, String>();
+
+
+    //Useful variable for keeping track of program runtime
+    private static final long   start   = System.currentTimeMillis();
+
+    public priceHistory() {
+
+        //set todays date
+        TimeZone est = TimeZone.getTimeZone("EST");
+        Calendar c = Calendar.getInstance(est, Locale.US);
+
+        String cs = c.toString();
+        String mo = cs.split(",MONTH=")[1].split(",")[0];
+        String yr = cs.split(",YEAR=")[1].split(",")[0];
+        String day = cs.split("DAY_OF_MONTH=")[1].split(",")[0];
+
+        System.out.println("\t*Mapping CSV* " + mo + "/" + day + "/" + yr);
+        readFile("history.txt");
+        double d = getPrice(50);
+        System.out.println("Method 1: $" + getPrice(50) + " happened " + getDate(d)); // $ result: 629.25
+        System.out.println("Method 2: $" + price("2016-09-03")); //$ result: 600.89
+        //can I now make another map for dates with price as the key? 
+        System.out.println("Getting date for price $710.910125... = " + getDate(710.910125));
+
+        /*can I sort the prices into ranges and then get
+        instead of exact values? Because then I could 
+        figure out how long a price lingers for and how long
+        a trend has lasted. Also I could make my other .txt files
+        log in the same CSV format. This way I could use these methods
+        on real time prices as well as historical data. 
+         */
+
+
+        System.out.println("Finished in " + timeElapsed() + " seconds");
+    }
+
+    /* MAIN - just instantiates the priceHistory class */
+    public static void main(String[] args) {
+        new priceHistory();
+    }
+
+
+    /* This method writes parameter String info to a text file 
+     called "dat.txt*/
+    private void readFile(String info) {
+        BufferedReader br = null;
+        FileReader fr = null;
+
+        try {
+            fr = new FileReader(info);
+            br = new BufferedReader(fr);
+
+            String sCurrentLine;
+            String time = null;
+            int ln = 0;
+            while ((sCurrentLine = br.readLine()) != null) {
+                lines[ln] = sCurrentLine;
+                time = lines[ln].split(",")[0].split(" 0")[0].trim();
+                double price = Double.parseDouble(lines[ln].split(",")[1]);
+                MAP.put(time, price);
+                map.put(price, time);
+                //   System.out.println(time+" : "+price);
+                history.put(ln, price);
+                history.get(ln);
+                ln += 1;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (br != null)
+                    br.close();
+                if (fr != null)
+                    fr.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+    }
+
+    /* Populate a String set with the date range of prices 
+    from the btc history CSV */
+    static Map<Integer, Double> parseFile() {
+        // Map <String,Double> history = new HashMap<String,Double>();
+        HashMap<Integer, Double> hm = new HashMap<>();
+        for (int i = 0; i <= 10; i++) {
+            hm.put(i, Double.parseDouble(lines[i].split(",")[0]));//err
+
+        }
+        return hm;
+    }
+
+    /* Show Set <String> of Dates*/
+    static void showIT() {
+        Iterator<String> it = dates.iterator();
+        while (it.hasNext()) {
+            System.out.println(it.next());
+        }
+    }
+
+    /* This method returns elapsed runtime of program*/
+    static double timeElapsed() {
+        return (System.currentTimeMillis() - start) * 0.001;
+    }
+
+    /* Get the Date corresping to a specific price in list */
+    static Double price(String in) {
+        Double price = MAP.get(in);
+        return price;
+    }
+
+    /* Find dates corresponding to a price range */
+    static String getDate(double price) {
+        String date = map.get(price);
+        return date;
+    }
+
+    //Method Here
+
+    /* Return the price on a given date - an int for now (until I get Map better*/
+    static double getPrice(int date) {
+        return history.get(date);
+    }
+    // ^^^^^ Returning null. Haven't figured out how to use HashMap correctly... 
+
+}
+/* priceHistory.java */
