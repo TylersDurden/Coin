@@ -38,7 +38,88 @@ Organizing Dates/Prices, allowing searches with either date or prices as Key :
     static Map<Integer, Double> history = new HashMap<Integer, Double>();
     static Map<String, Double>  MAP     = new HashMap<String, Double>();
 ```
-Method for parsing dates from CSV: 
+Creating a moving average, and Identifying upward/downward swings
+```java
+ static Vector <Double> moving = new Vector<>(100,1);
+ 
+ /* Analyze moving Vector to determine swing state of market
+    and attempt to predict potential price reversals */
+    static void movingAvg(int mark){     
+       
+       /* 1- Find min and max of Vector moving
+        * 2 - using getVecAvg to see what avg of vector is
+        * 3 - Keep Track of when avg flips its sign 
+        * 4 - If large reversal or significant event start over 
+        */
+       
+      double max = Collections.max(moving);
+      double min =  Collections.min(moving);
+      double mavg=  getVecAvg(moving);
+        if(mavg<0){
+           swing[time] = "Down";
+       }else{
+           swing[time] = "Up";
+       }
+       //Choosing a trend of 5 same swing{time} in a row
+       //reversal imminent if avg changes sign or by over 50%
+       //clear Vector <double> moving after a reversal 
+```
+Gather Market Data & Store important values 
+```java 
+ /* Memory */
+ void member(double[] newest) {
+
+        double []   del  = new double[4];
+        double []   movt =  new double[4];
+        double diff = 0;
+        for (int i = 0; i < 4; i++) {
+            String line = "\n";
+            if (time > 0) {
+                if (newest[i] > history[i][time - 1]) {
+                    del[i] = newest[i] - history[i][time - 1];
+                    log(markets[i] + " + " + del[i]);
+                    plus[i][time] = del[i];
+                    line += Double.toString(del[i]);
+                }
+                if (newest[i] < history[i][time - 1]) {
+                    del[i] = newest[i] - history[i][time - 1];
+                    log("**[" + markets[i] + " - " + 
+                    del[i] + "]**");
+                    minus[i][time] = del[i];
+                    line += Double.toString(del[i]);
+                }
+                diff =  Math.abs(plus[i][time]) - Math.abs(minus[i][time]);
+                if(diff>1.00){
+                    Top[i] = queryMarkets(markets[selection]);
+                    mathLog(markets[i]+ " BULLS "+ diff+
+                    " $"+Top[i]);
+                    Top[i] = history[i][time];
+                }
+                if(diff<-1.00){
+                    Low[i] = queryMarkets(markets[selection]);
+                    mathLog(markets[i]+" BEARS "+diff+
+                    " $"+Low[i]);    
+                }
+            }
+            momentum[i][time]=del[i];
+            history[i][time] = newest[i];
+            moving.add(time,diff);
+```
+
+Averaging the moving Vector <double> 
+
+ ```java 
+ /* Average input Vector v */
+ static double getVecAvg(Vector v){
+        double sum=0;
+        for(int i=0;i<v.size();i++){
+            sum+= (double) v.get(i);
+        } 
+        sum = sum/(v.size()+1);
+        return sum;
+    }
+```
+Method for Generating Timestamp in log files : 
 ```java 
 TimeZone est = TimeZone.getTimeZone("EST");
 Calendar c = Calendar.getInstance(est, Locale.US);
@@ -47,4 +128,7 @@ String cs = c.toString();
 String mo = cs.split(",MONTH=")[1].split(",")[0];
 String yr = cs.split(",YEAR=")[1].split(",")[0];
 String day = cs.split("DAY_OF_MONTH=")[1].split(",")[0];
+String hour = cs.split("HOUR_OF_DAY=")[1].split(",")[0];
+String min = cs.split("MINUTE=")[1].split(",")[0];
+String dateHead = mo+"/"+day+"/"+yr+" "+hour+":"+min;
  ```
