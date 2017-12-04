@@ -1,3 +1,15 @@
+# Coin2.0 - Updated (12/4/17) 
+A new and improved approach to analyzing Bitcoin Markets using real-time data collection and historical data. 
+Coin2.0 relies on several Java Classes to first collect Market Summaries of 3 major Bitcoin Exchanges. 
+After logging these results, and finding Intraday support and resistance levels for each exchange, this information
+the program moves on to collect real time orderbook data from the same 3 exchanges. 
+
+The orderbook data is sorted, organized and used to make predictions in real time. 
+
+## Coin2.0 *Workflow
+Updates to come. 
+
+
 # Coin
 First repository/ new to Github
 
